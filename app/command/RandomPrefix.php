@@ -12,19 +12,23 @@ class RandomPrefix extends Command
     {
         $this->setName('domain:random') // 调用命令名：php think domain:random
         ->setDescription('为域名随机添加支付相关前缀')
-            ->addArgument('domains', Argument::REQUIRED, '逗号分隔的域名列表，例如：a.com,b.com');
+            ->addArgument(
+                'domains',
+                Argument::REQUIRED,
+                '用逗号或空格分隔的域名列表，例如：a.com b.com 或 a.com,b.com'
+            );
     }
 
     protected function execute(Input $input, Output $output)
     {
-        $domainsStr = $input->getArgument('domains');   // 如：a.com,b.com
+        $domainsStr = $input->getArgument('domains');   // 如：a.com b.com 或 a.com,b.com
 
         if (empty($domainsStr)) {
-            $output->writeln('请输入域名，例如：php think domain:random a.com,b.com');
+            $output->writeln('请输入域名，例如：php think domain:random "a.com b.com" 或 php think domain:random a.com,b.com');
             return;
         }
 
-        // 前缀池（你给的这堆）
+        // 前缀池
         $prefixes = [
             'checkout',
             'payment',
@@ -58,7 +62,10 @@ class RandomPrefix extends Command
             'inventory',
         ];
 
-        $domains = explode(',', $domainsStr);
+        // 支持用逗号或空格分隔：同时拆分 , 和 空白字符
+        // 例如： "a.com,b.com c.com , d.com" 都能正常拆分
+        $domains = preg_split('/[\s,]+/', $domainsStr);
+
         $result = [];
 
         foreach ($domains as $domain) {
@@ -74,7 +81,15 @@ class RandomPrefix extends Command
             $result[] = $prefix . '.' . $domain;
         }
 
-        // 输出结果
-        $output->writeln(implode(',', $result));
+        if (empty($result)) {
+            $output->writeln('没有解析到有效域名，请检查输入格式');
+            return;
+        }
+
+        // 每个结果换行输出
+        foreach ($result as $line) {
+            $output->writeln($line);
+        }
+        // 也可以用：$output->writeln(implode(PHP_EOL, $result));
     }
 }
